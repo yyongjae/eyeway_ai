@@ -12,7 +12,8 @@ add_wandb_callback(model, enable_model_checkpointing=True)
 model.train(
     project="eyeway",
     data='/Users/yongcho/dev/yonggit/eyeway_ai/ultralytics/ultralytics/yong/subway_data/data.yaml',
-    epochs=30
+    epochs=30,
+    device='mps'
 )
 
 metrics = model.val()

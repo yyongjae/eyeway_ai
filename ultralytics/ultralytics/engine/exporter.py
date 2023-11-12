@@ -737,9 +737,10 @@ class Exporter:
         if self.args.int8:
             f = saved_model / f'{self.file.stem}_int8.tflite'  # fp32 in/out
         elif self.args.half:
-            f = saved_model / f'{self.file.stem}_float16.tflite'  # fp32 in/out
-        else:
             f = saved_model / f'{self.file.stem}_float32.tflite'
+            
+        else:
+            f = saved_model / f'{self.file.stem}_float16.tflite'  # fp32 in/out
         return str(f), None
 
     @try_export
