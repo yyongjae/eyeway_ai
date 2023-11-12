@@ -1,0 +1,12 @@
+escalator
+gate
+guide board
+left arrow
+platform
+right arrow
+stair
+straight arrow
+toilet door
+toilet
+u arrow
+under arrow
