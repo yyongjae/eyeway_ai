@@ -1,8 +1,9 @@
 .venv
 *.pyc
-*.DS_Store
+.DS_Store
 *.env
 *.mp4
 *.mov
 *.jpg
 *.cache
+*.txt

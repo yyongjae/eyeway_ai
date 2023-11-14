@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 12
+names: ['escalator', 'gate', 'guide board', 'left arrow', 'platform', 'right arrow', 'stair', 'straight arrow', 'toilet', 'toilet door', 'u arrow', 'under arrow']
+
+roboflow:
+  workspace: eyeway
+  project: subway-guide
+  version: 6
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/eyeway/subway-guide/dataset/6
