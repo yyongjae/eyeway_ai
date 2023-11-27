@@ -72,21 +72,21 @@ def levenshtein_distance(str1, str2):
 # word1 = korean_word_to_initials("어린이대공원역")
 # word2 = korean_word_to_initials("어룬이공")
 
-word1 = korean_to("어린이대공원역")
-word2 = korean_to("어룬이공")
+# word1 = korean_to("어린이대공원역")
+# word2 = korean_to("어룬이공")
 
-print(word1)
-print(word2)
+# print(word1)
+# print(word2)
 
-distance = levenshtein_distance(word1, word2)
-print("Levenshtein 거리: {distance}")
+# distance = levenshtein_distance(word1, word2)
+# print("Levenshtein 거리: {distance}")
 
 
 # 2. Levenshtein
 
 def Levenshtein_similarity(_ocr_test):
     distances = {}
-    for station_name in real_station_names:
+    for station_name in station_name_list:
       distance = levenshtein_distance(korean_to(_ocr_test), korean_to(station_name))
       distances[station_name] = distance
 
@@ -130,7 +130,7 @@ def jaccard(str1, str2):
 
 def jaccard_similarity(_ocr_test):
     ja_similarities = {}
-    for station_name in real_station_names:
+    for station_name in station_name_list:
         ja_similarity = jaccard(_ocr_test, station_name)
         ja_similarities[station_name] = ja_similarity
 

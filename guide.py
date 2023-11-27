@@ -26,6 +26,18 @@ class Guide:
         self.guide_board = list()
         self.arrow = list()
         self.text = list()
+        self.label_map = {0: 'escalator', 
+                          1: 'gate', 
+                          2: 'guide board', 
+                          3: '왼쪽', 
+                          4: 'platform', 
+                          5: '오른쪽', 
+                          6: 'stair', 
+                          7: '직진', 
+                          8: 'toilet', 
+                          9: 'toilet door', 
+                          10: '유턴', 
+                          11: '아래'}
         
     def get_text_center(self,box,feat):
         
@@ -96,10 +108,9 @@ class Guide:
         return processed_data
 
 
-    def ocr(self):
+    def ocr(self, img):
         
         start = time.time()
-        img = self.img
         
         request_json = {
             'images': [
@@ -146,7 +157,7 @@ class Guide:
             x1, y1, x2, y2 = box['box']
             x1, y1, x2, y2 = x1 - g_x1, y1 - g_y1, x2 - g_x1, y2 - g_y1
             box['box'] = [x1, y1, x2, y2]
-        
+            
         print(f'[CROP] 변환 완료')
         
         return cropped_image, ar_box
@@ -202,7 +213,6 @@ class Guide:
                 filtered_arrow.append(arrow)
             
         print(f"[Filtering] 총 {len(filtered_arrow)}개의 화살표 인식")
-       
         return board, filtered_arrow
     
     def mapping_arrow(self, ocr_data, arrow_data):
@@ -212,16 +222,16 @@ class Guide:
         for text in ocr_data:
             text_point = text['center']
             direction = ''
-            max_distance = 0
+            min_distance = 9999
             for arrow in arrow_data:
                 arr_point = self.get_text_center(arrow['box'], 'yolo')
                 dist = self.distance(text_point, arr_point)
                 
-                if dist > max_distance:
-                    max_distance = dist
+                if dist < min_distance:
+                    min_distance = dist
                     direction = arrow['label']
-            result['arrows'].append({"type": direction,
-                                     "text": ocr_data['text']})
+            result['arrows'].append({"type": self.label_map[direction],
+                                     "text": text['text']})
         
         return result
             
@@ -263,17 +273,37 @@ class Guide:
         pass
             
     def start(self,):
-        
+        s = time.time()
         # 상황에 따라 세가지로 나눠서 처리
         ## 1. 길찾기
         ## 2. 화장실찾기
         ## 3. 출구찾기
-        if self.situation is 'board':
+        if self.situation == 'board':
+            print('[Start] 승강장 찾기 시작.')
             res = self.board()
-        elif self.situation is 'toilet':
+        elif self.situation == 'toilet':
+            print('[Start] 화장실 찾기 시작.')
             self.toilet()
-        elif self.situation is 'exit':
+        elif self.situation == 'exit':
+            print('[Start] 출구 찾기 시작.')
             self.exit()
-        
+        e = time.time()
+        print(f'총 {e-s}초 소요')
         return res
         
+
+if __name__ == "__main__":
+    
+    image_path = './ultralytics/ultralytics/yong/subway_data/v2/images/images_864.jpg'
+    with open(image_path, 'rb') as image_file:
+        image_data = image_file.read()
+        
+    box = [{'label':2, 'box':[71, 420, 945, 536]},
+         {'label':3, 'box':[92, 462, 158 ,528]},
+         {'label':5, 'box':[850, 442, 904, 502]}]
+    
+    encoded_image = base64.b64encode(image_data).decode('utf-8')
+    
+    guide = Guide(encoded_image, box, situation='board')
+    res = guide.start()
+    print(res)
