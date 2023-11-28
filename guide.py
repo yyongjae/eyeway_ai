@@ -10,7 +10,8 @@ import requests
 import io
 import base64
 from PIL import Image
-from similarity import find_same_string, spacy_similarities, jaccard_similarity, Levenshtein_similarity
+from similarity import find_same_string, jaccard_similarity, Levenshtein_similarity
+import re
 
 load_dotenv()
 
@@ -178,6 +179,7 @@ class Guide:
         
         guide_board = []
         arrows = []
+        toilet = []
         outtlier = []
         
         ### --- 박스 정보에 따라 인덱싱 수정해야함 --- ###
@@ -187,6 +189,8 @@ class Guide:
                 guide_board.append(box)
             elif box['label'] in [3,5,7,10,11]: # L, R, S, U, under
                 arrows.append(box)
+            elif box['label'] == 8:
+                toilet.append(box)
             else:
                 outtlier.append(box)
                 print(f"[Label 분류]{box['label']} 발견")
@@ -213,26 +217,42 @@ class Guide:
                 filtered_arrow.append(arrow)
             
         print(f"[Filtering] 총 {len(filtered_arrow)}개의 화살표 인식")
-        return board, filtered_arrow
+        return board, filtered_arrow,toilet
     
-    def mapping_arrow(self, ocr_data, arrow_data):
+    def mapping_arrow(self, data, arrow_data,feat):
         
-        result = {'arrows':[]}
+        if feat == 'guide':
+            result = {'arrows':[]}
+            
+            for text in data:
+                text_point = text['center']
+                direction = ''
+                min_distance = 9999
+                for arrow in arrow_data:
+                    arr_point = self.get_text_center(arrow['box'], 'yolo')
+                    dist = self.distance(text_point, arr_point)
+                    
+                    if dist < min_distance:
+                        min_distance = dist
+                        direction = arrow['label']
+                result['arrows'].append({"type": self.label_map[direction],
+                                        "text": text['text']})
         
-        for text in ocr_data:
-            text_point = text['center']
+        elif feat == 'toilet':
+            
             direction = ''
             min_distance = 9999
             for arrow in arrow_data:
                 arr_point = self.get_text_center(arrow['box'], 'yolo')
-                dist = self.distance(text_point, arr_point)
+                toilet_point = self.get_text_center(data['box'], 'yolo')
+                dist = self.distance(toilet_point, arr_point)
                 
                 if dist < min_distance:
                     min_distance = dist
                     direction = arrow['label']
-            result['arrows'].append({"type": self.label_map[direction],
-                                     "text": text['text']})
-        
+            
+            result = self.label_map[direction]
+            
         return result
             
     def board(self,):
@@ -242,7 +262,7 @@ class Guide:
         # 화살표 있는지 체크하고 안내판, 화살표 리스트를 나눠서 받기.
         ## 화살표가 안내판 박스 안에 있는지 체크
         ### 해당 조건에 맞는 안내판 및 화살표 리스트 받아오기
-        guide_board, arrow = self.filtering_object(box_info)
+        guide_board, arrow, _= self.filtering_object(box_info)
         
         # crop한 안내판 이미지에 대해 OCR 진행
         crop_g_board, trans_arrow_box = self.crop_boxes(org_img, guide_board, arrow)        
@@ -251,8 +271,9 @@ class Guide:
         for data in ocr_data:
             text = data['text']
             ## 텍스트 박스에 대해서 역 이름, 나가는 곳 등과 같은 정보만 필터링 및 단어 유사도 보완
-            sp, jc, lv = spacy_similarities(text), jaccard_similarity(text), Levenshtein_similarity(text)
-            mod_text = find_same_string(sp, jc, lv)
+            jc1, jc2 = jaccard_similarity(text)
+            lv = Levenshtein_similarity(text)
+            mod_text = find_same_string(jc1, jc2, lv)
             # --- 추가할 점 --- #
             ## 유사도 엄청 낮으면 아예 빼버려야함. ## 
             # 수정한 텍스트 반영
@@ -262,15 +283,80 @@ class Guide:
         print('글자 수정 완료')
         
         # 화살표 박스와 텍스트 박스의 유클리드 거리를 비교하여 맵핑
-        result = self.mapping_arrow(ocr_data, trans_arrow_box)
+        result = self.mapping_arrow(ocr_data, trans_arrow_box,'guide')
         
         return result
     
     def toilet(self,):
-        pass
+        
+        box_info = self.box_info
+        guide_board, arrow, toilet= self.filtering_object(box_info)
+        result = self.mapping_arrow(toilet, arrow,'guide')
+
+        return result
     
-    def exit(self,):
-        pass
+    def extract_number(self, input_string):
+        current_num = ''
+        for char in input_string:
+            if char.isdigit():
+                current_num += char
+            elif char.isalpha():
+                break
+
+        if current_num:
+            return int(current_num)
+        else:
+            return None
+        
+    def exit(self, exit_num):
+        box_info = self.box_info
+        org_img = self.img
+            
+        guide_board, arrow, _ = self.filtering_object(box_info)
+        
+        # crop한 안내판 이미지에 대해 OCR 진행
+        crop_g_board, trans_arrow_box = self.crop_boxes(org_img, guide_board, arrow)        
+        ocr_data = self.ocr(crop_g_board)
+        check = False
+        direction = ''
+        num_lst = []
+        for data in ocr_data:
+            if data['text'] in ['나가는', '나가는곳', '나가', '곳', '나가는 곳', '출구', 'Exit']:
+                check = True
+            if any(char.isdigit() for char in data['text']):
+                num_lst.append(data)
+        
+        num_check = False
+        if check:
+            for num in num_lst:
+                if '~' in num['text']:
+                    matches = re.findall(r'\d+|~', num['text'])
+                    numbers = [int(match) if match.isdigit() else None for match in matches]
+                    numbers = [num for num in numbers if num is not None]
+
+                    if numbers[0] <= exit_num and numbers[1] >= exit_num:
+                        num_check = True
+                        break
+                else:
+                    pure_num = str(self.extract_number(num['text']))
+                    if str(exit_num) in pure_num:
+                        num_check = True
+                        break
+    
+        if num_check:
+            if len(trans_arrow_box) > 1:
+                max_size = 0
+            big_arrow = trans_arrow_box[0]
+            for ab in trans_arrow_box:
+                size = self.box_size(ab['box'])
+                if max_size < size:
+                    max_size = size
+                    big_arrow = ab
+                
+            direction = big_arrow['label']
+        
+        return direction
+            
             
     def start(self,):
         s = time.time()
@@ -290,7 +376,7 @@ class Guide:
         e = time.time()
         print(f'총 {e-s}초 소요')
         return res
-        
+
 
 if __name__ == "__main__":
     

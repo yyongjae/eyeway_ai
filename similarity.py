@@ -9,11 +9,11 @@ nlp = spacy.load("ko_core_news_sm")
 import numpy as np
 import pandas as pd
 
+
 # 5호선, 7호선 지하철 역 이름 정리 리스트
 station_name_list = ['청구', '신금호', '행당', '왕십리', '마장', '답십리', '장한평', '군자', '아차산', '미사', '거여', '광나루', '천호', '강동', '길동', '굽은다리', '명일', '고덕', '상일동', '둔촌동', '올림픽공원', '방이', '오금', '개롱', '하남검단산', '하남시청', '하남풍산', '강일', '마천', '방화', '개화산', '김포공항', '송정', '마곡', '발산', '우장산', '화곡', '까치산', '신정', '목동', '오목교', '양평', '영등포구청', '영등포시장', '신길', '여의도', '여의나루', '마포', '공덕', '애오개', '충정로', '서대문', '광화문', '종로3가', '을지로4가', '동대문역사문화공원', '남성', '이수', '내방', '고속터미널', '반포', '논현', '학동', '강남구청', '청담', '뚝섬유원지', '건대입구', '어린이대공원', '군자', '중곡', '용마산', '산곡', '부평구청', '굴포천', '중화', '사가정', '면목', '상봉', '상동', '부천시청', '신중동', '춘의', '부천종합운동장', '까치울', '마들', '노원', '중계', '먹골', '하계', '공릉', '태릉입구', '석남', '삼산체육관', '수락산', '도봉산', '장암', '온수', '천왕', '광명사거리', '철산', '가산디지털단지', '남구로', '대림', '신풍', '보라매', '신대방삼거리', '장승배기', '상도', '숭실대입구']
 
-# 1. Spacy 활용
-# 2. 문자열 유사도 측정
+# 문자열 유사도 측정
 # - Levenshtein 거리 => 거리는 초성/중성/종성을 나눠서 진행
 # - Jaccard 유사성 지수
 
@@ -65,22 +65,6 @@ def levenshtein_distance(str1, str2):
             )
     return matrix[-1][-1]
 
-# 예제 사용
-# word1 = korean_to_be_englished("어린이대공원역")
-# word2 = korean_to_be_englished("어룬이공")
-
-# word1 = korean_word_to_initials("어린이대공원역")
-# word2 = korean_word_to_initials("어룬이공")
-
-# word1 = korean_to("어린이대공원역")
-# word2 = korean_to("어룬이공")
-
-# print(word1)
-# print(word2)
-
-# distance = levenshtein_distance(word1, word2)
-# print("Levenshtein 거리: {distance}")
-
 
 # 2. Levenshtein
 
@@ -91,26 +75,10 @@ def Levenshtein_similarity(_ocr_test):
       distances[station_name] = distance
 
     # 유사성이 가장 높은 역 찾기
-    # most_similar_station = min(distances, key=distances.get)
-    # similarity_score = distances[most_similar_station]
-
-    # print("가장 유사한 역: ", most_similar_station)
-    # print("유사성 점수: ", similarity_score)
+    most_similar_station = min(distances, key=distances.get)
+    similarity_score = distances[most_similar_station]
     return min(distances, key=distances.get)
 
-
-
-# spaCy를 사용하여 유사성 측정
-
-def spacy_similarities(_ocr_test):
-  similarities = {}
-  for station_name in station_name_list:
-      doc1 = nlp(_ocr_test)
-      doc2 = nlp(station_name)
-      similarity = doc1.similarity(doc2)
-      similarities[station_name] = similarity
-  # 유사성이 가장 높은 역 찾기
-  return max(similarities, key=similarities.get)
 
 # Jaccard 유사도(Similarity)
 # 두 집합 간의 유사성을 측정하는 메트릭, 두 문자열을 각각 문자 단위로 나눈 후, 공통 문자의 비율 계산
@@ -135,30 +103,22 @@ def jaccard_similarity(_ocr_test):
         ja_similarities[station_name] = ja_similarity
 
     # 유사성이 가장 높은 역 찾기
-    # most_similar_station = max(ja_similarities, key=ja_similarities.get)
-    # similarity_score = ja_similarities[most_similar_station]
-    
-    # print("가장 유사한 역: ", most_similar_station)
-    # print("유사성 점수: ", similarity_score)
-    return max(ja_similarities, key=ja_similarities.get)
+    most_similar_station = max(ja_similarities, key=ja_similarities.get)
+    similarity_score = ja_similarities[most_similar_station]
+    return similarity_score, most_similar_station
 
 #################################################################
 
 # 아래의 변수에 확인하고자 하는 변수를 넣어주세요.
-ocr_test = "어른이대"
+ocr_test = "타는곳"
 
-def find_same_string(str1, str2, str3):
-    if str1 == str2 == str3:
-        return str1
-    elif str1 == str2:
-        return str1
-    elif str1 == str3:
-        return str1
-    elif str2 == str3:
-        return str2
-    else:
-        return str1
+def find_same_string(i, str1, str2):
+  if(i == 0):
+    return None
+  if str1 == str2:
+      return str1
+  else:
+      return str1
 
-# print(find_same_string(spacy_similarities(ocr_test), 
-#                  jaccard_similarity(ocr_test),
-#                  Levenshtein_similarity(ocr_test)))
+# a, s = jaccard_similarity(ocr_test)
+# print(find_same_string(a, s, Levenshtein_similarity(ocr_test)))
