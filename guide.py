@@ -91,9 +91,10 @@ class Guide:
             
             infer_text = box['inferText']
 
-            # 한글 외에 다른 문자 있으면 거르기
-            if not self.is_all_korean(infer_text):
-                continue
+            if self.situation == 'board':
+                # 한글 외에 다른 문자 있으면 거르기
+                if not self.is_all_korean(infer_text):
+                    continue
             
             # 중심 좌표 계산
             bounding_poly = box['boundingPoly']['vertices']
@@ -344,6 +345,7 @@ class Guide:
         for data in ocr_data:
             if data['text'] in ['나가는', '나가는곳', '나가', '곳', '나가는 곳', '출구', 'Exit']:
                 check = True
+                print(f'[EXIT {check}] 안내판에서 출구 문구 확인')
             if any(char.isdigit() for char in data['text']):
                 num_lst.append(data)
         
@@ -363,20 +365,21 @@ class Guide:
                     if str(exit_num) in pure_num:
                         num_check = True
                         break
-    
+        
         if num_check:
+            big_arrow = trans_arrow_box[0]
             if len(trans_arrow_box) > 1:
                 max_size = 0
-            big_arrow = trans_arrow_box[0]
-            for ab in trans_arrow_box:
-                size = self.box_size(ab['box'])
-                if max_size < size:
-                    max_size = size
-                    big_arrow = ab
+                
+                for ab in trans_arrow_box:
+                    size = self.box_size(ab['box'])
+                    if max_size < size:
+                        max_size = size
+                        big_arrow = ab
                 
             direction = big_arrow['label']
-        
-        return direction
+            
+        return self.label_onboarding[direction]
             
             
     def start(self,):
@@ -393,7 +396,7 @@ class Guide:
             res = self.toilet()
         elif self.situation == 'exit':
             print('[Start] 출구 찾기 시작.')
-            res = self.exit()
+            res = self.exit('2')
         e = time.time()
         print(f'총 {e-s}초 소요')
         return res
@@ -401,16 +404,15 @@ class Guide:
 
 if __name__ == "__main__":
     
-    image_path = '/Users/yongcho/dev/yonggit/eyeway_ai/aaaaaa.jpg'
+    image_path = '/Users/yongcho/dev/yonggit/eyeway_ai/-_image71_jpg.rf.d350ba82407871a16db65297270abc91.jpg'
     with open(image_path, 'rb') as image_file:
         image_data = image_file.read()
         
-    box = [{'label':3, 'box':[396, 108, 450, 166]},
-           {'label':0, 'box':[188, 114, 250, 164]},
-           {'label':0, 'box':[465, 253, 493, 279]}]
+    box = [{'label':0, 'box':[0, 422, 616, 514]},
+           {'label':2, 'box':[567 ,435 ,589 ,471]}]
     
     encoded_image = base64.b64encode(image_data).decode('utf-8')
     # encoded_image = 
-    guide = Guide(encoded_image, box, situation='toilet')
+    guide = Guide(encoded_image, box, situation='exit')
     res = guide.start()
     print(res)
