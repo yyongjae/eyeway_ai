@@ -1,0 +1,5 @@
+[default]
+entity = _yyongjae
+project = eyeway
+base_url = https://api.wandb.ai
+
